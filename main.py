@@ -53,7 +53,7 @@ def check_nfo_content(nfo_path):
 
 
 # ==========================================
-# 3. 核心方法：电影 movie.nfo 深度检查
+# 3. 核心方法：电影 NFO 深度检查
 # ==========================================
 def check_movie_nfo_content(nfo_path):
     """返回元组: (是否合法, 错误原因)"""
@@ -81,29 +81,62 @@ def check_movie_nfo_content(nfo_path):
 
 
 # ==========================================
-# 4. 业务逻辑：电影处理分支
+# 4. 业务逻辑：电影处理分支 (重点升级区域)
 # ==========================================
 def process_movie(folder_path, folder_name, summary):
+    # 1. 查找文件夹内的所有真实视频文件
+    video_files = [f for f in folder_path.iterdir() if f.is_file() and f.suffix.lower() in VIDEO_EXTENSIONS]
+    has_video = len(video_files) > 0
+
+    # 2. 检查 movie.nfo 是否存在
     movie_nfo_path = folder_path / 'movie.nfo'
-    has_video = any(f.suffix.lower() in VIDEO_EXTENSIONS for f in folder_path.iterdir() if f.is_file())
+    has_movie_nfo = movie_nfo_path.exists()
+
+    # 3. 寻找与视频“同名”的 NFO 文件
+    name_nfo_paths = []
+    for video_file in video_files:
+        # video_file.stem 获取不带后缀的名字，拼装成 .nfo
+        expected_nfo = folder_path / f"{video_file.stem}.nfo"
+        if expected_nfo.exists():
+            name_nfo_paths.append(expected_nfo)
+
+    # 去重（防止多视频匹配到同一个nfo）
+    name_nfo_paths = list(set(name_nfo_paths))
+    has_name_nfo = len(name_nfo_paths) > 0
 
     movie_errors = []
 
-    if not movie_nfo_path.exists():
+    # 情形 1：什么 NFO 都没有
+    if not has_movie_nfo and not has_name_nfo:
         if not has_video:
+            # 没视频也没NFO，废弃文件夹
             print(f"⚠️ [未知异常] {folder_name} - 未找到任何特征 (无 Season, 无 nfo, 无视频)")
             summary["ignored"].append(f"📂 [空/异常目录] {folder_name}")
             return
         else:
+            # 有视频但没刮削
             print(f"🎬 [电影] {folder_name}")
-            print(f"    └─ ❌ [完全缺失] 未找到 movie.nfo 文件，请重新刮削该电影")
-            movie_errors.append("未找到 movie.nfo 文件")
+            video_names = ", ".join([v.name for v in video_files])
+            print(f"    └─ ❌ [完全缺失] 未找到 movie.nfo，也未找到与视频 ({video_names}) 同名的 .nfo 文件")
+            movie_errors.append("未找到任何相关的 NFO 文件")
+
+    # 情形 2：至少存在一个 NFO (movie.nfo 或 同名.nfo)
     else:
         print(f"🎬 [电影] {folder_name}")
-        is_valid, err_msg = check_movie_nfo_content(movie_nfo_path)
-        if not is_valid:
-            print(f"    └─ ❌ [重刮削警告] 包含非法的 movie.nfo，请重新刮削该电影")
-            movie_errors.append(f"movie.nfo 异常 ({err_msg})")
+
+        # 将存在的 nfo 都放入“待查清单”
+        nfos_to_check = []
+        if has_movie_nfo:
+            nfos_to_check.append(movie_nfo_path)
+        if has_name_nfo:
+            nfos_to_check.extend(name_nfo_paths)
+
+        # 遍历检查清单里的所有 nfo (如果两者都有，两个都会被检查)
+        for nfo_path in nfos_to_check:
+            is_valid, err_msg = check_movie_nfo_content(nfo_path)
+            if not is_valid:
+                print(f"    └─ ❌ [重刮削警告] {nfo_path.name} 非法 ({err_msg})")
+                movie_errors.append(f"{nfo_path.name} 异常 ({err_msg})")
 
     # 录入总结报告
     if movie_errors:
@@ -170,7 +203,7 @@ def process_tv_show(title, season_folders, summary):
 
 
 # ==========================================
-# 6. 主干扫描逻辑 (加入报告打印模块)
+# 6. 主干扫描逻辑
 # ==========================================
 def scan_library(root_dir):
     root_path = Path(root_dir)
@@ -182,11 +215,10 @@ def scan_library(root_dir):
     print(f"开始扫描媒体库: {root_dir}")
     print("=" * 60)
 
-    # 报告统计字典
     summary = {
-        "perfect": [],  # 完美无瑕的项
-        "errors": [],  # 有问题的项
-        "ignored": []  # 忽略的异常/空文件夹
+        "perfect": [],
+        "errors": [],
+        "ignored": []
     }
 
     for item in root_path.iterdir():
@@ -214,6 +246,7 @@ def scan_library(root_dir):
             else:
                 process_tv_show(title, season_folders, summary)
         else:
+            # 仅传递必要参数给 process_movie
             process_movie(item, folder_name, summary)
 
     # ==========================================
@@ -223,14 +256,12 @@ def scan_library(root_dir):
     print(" " * 18 + "📊 最终刮削质检报告 📊")
     print("★" * 60)
 
-    # 1. 打印完美项
     print(f"\n✅ 【完美无瑕】 (共 {len(summary['perfect'])} 部/季):")
     if not summary['perfect']:
         print("   （无完美数据，革命尚未成功）")
     for item in summary['perfect']:
         print(f"   ✔️ {item}")
 
-    # 2. 打印报错项
     print(f"\n❌ 【需要修复】 (共 {len(summary['errors'])} 部/季):")
     if not summary['errors']:
         print("   （太棒了！未发现任何刮削问题）")
@@ -239,7 +270,6 @@ def scan_library(root_dir):
         for issue in err_group['issues']:
             print(f"       └─ {issue}")
 
-    # 3. 打印异常忽略项
     if summary['ignored']:
         print(f"\n👻 【废弃/异常目录】 (共 {len(summary['ignored'])} 个):")
         for item in summary['ignored']:
@@ -253,6 +283,6 @@ def scan_library(root_dir):
 # ==========================================
 if __name__ == "__main__":
     # 替换为你实际的测试路径
-    TARGET_DIRECTORY = r"N:\NasTool\movie"
+    TARGET_DIRECTORY = r"N:\NasTool\cartoon"
 
     scan_library(TARGET_DIRECTORY)
