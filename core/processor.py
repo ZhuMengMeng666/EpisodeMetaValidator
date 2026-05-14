@@ -25,13 +25,13 @@ def process_movie(folder_path, folder_name, summary):
     if not has_movie_nfo and not has_name_nfo:
         if not has_video:
             print(f"⚠️ [未知异常] {folder_name} - 未找到任何特征 (无 Season, 无 nfo, 无视频)")
-            summary["ignored"].append(f"📂 [空/异常目录] {folder_name} (位于 {folder_path.parent.name})")
+            summary["ignored"].append({"text": f"📂 [空/异常目录] {folder_name}", "path": folder_path})
             return
         else:
             print(f"🎬 [电影] {folder_name}")
-            video_names = ", ".join([v.name for v in video_files])
-            print(f"    └─ ❌ [完全缺失] 未找到 movie.nfo，也未找到与视频 ({video_names}) 同名的 .nfo 文件")
-            movie_errors.append("未找到任何相关的 NFO 文件")
+            reason = f"完全缺失 NFO (未找到 movie.nfo 或与视频同名的 .nfo)"
+            print(f"    └─ ❌ [需重刮削] {reason}")
+            movie_errors.append(f"[需重刮削] {reason}")
     else:
         print(f"🎬 [电影] {folder_name}")
         nfos_to_check = []
@@ -41,13 +41,15 @@ def process_movie(folder_path, folder_name, summary):
         for nfo_path in nfos_to_check:
             is_valid, err_msg = check_movie_nfo_content(nfo_path)
             if not is_valid:
-                print(f"    └─ ❌ [重刮削警告] {nfo_path.name} 非法 ({err_msg})")
-                movie_errors.append(f"{nfo_path.name} 异常 ({err_msg})")
+                reason = f"{nfo_path.name} 异常 ({err_msg})"
+                print(f"    └─ ❌ [需重刮削] {reason}")
+                movie_errors.append(f"[需重刮削] {reason}")
 
+    # 修改：将路径对象一并存入 summary
     if movie_errors:
-        summary["errors"].append({"target": f"🎬 [电影] {folder_name}", "issues": movie_errors})
+        summary["errors"].append({"target": f"🎬 [电影] {folder_name}", "path": folder_path, "issues": movie_errors})
     else:
-        summary["perfect"].append(f"🎬 [电影] {folder_name}")
+        summary["perfect"].append({"text": f"🎬 [电影] {folder_name}", "path": folder_path})
 
 
 def process_tv_show(title, season_folders, summary):
@@ -59,7 +61,7 @@ def process_tv_show(title, season_folders, summary):
 
         if not real_episodes:
             print(f"📺 [剧集异常] {title} ({season_folder.name}) - 未找到任何视频文件！")
-            summary["ignored"].append(f"📂 [无视频剧集] {title} - {season_folder.name}")
+            summary["ignored"].append({"text": f"📂 [无视频剧集] {title} - {season_folder.name}", "path": season_folder})
             continue
 
         print(f"📺 [剧集] {title} - {season_folder.name} (共发现真实视频: {len(real_episodes)} 集)")
@@ -81,23 +83,28 @@ def process_tv_show(title, season_folders, summary):
         season_errors = []
 
         for ep in real_episodes:
-            expected_name = f"{title} - S{season_num:02d}E{ep:02d} - 第 {ep} 集"
             ep_data = episode_files[ep]
 
             if not ep_data['nfo']:
-                print(f"    └─ ❌ [完全缺失] 未找到 NFO 文件，请整集重新刮削 (.nfo 和 .jpg) : {expected_name}")
-                season_errors.append(f"第 {ep} 集 完全缺失 (.nfo 和 .jpg)")
+                missing_items = ".nfo" if ep_data['jpg'] else ".nfo 和 .jpg"
+                reason = f"第 {ep} 集 完全缺失 ({missing_items})"
+                print(f"    └─ ❌ [需重刮削] {reason}")
+                season_errors.append(f"[需重刮削] {reason}")
             else:
                 is_nfo_valid, err_msg = check_nfo_content(ep_data['nfo'])
                 if not is_nfo_valid:
-                    print(f"    └─ ❌ [重刮削警告] 包含非法 NFO，请整集重新刮削 (.nfo 和 .jpg) : {expected_name}")
-                    season_errors.append(f"第 {ep} 集 NFO 非法 ({err_msg})")
+                    reason = f"第 {ep} 集 NFO非法 ({err_msg})"
+                    print(f"    └─ ❌ [需重刮削] {reason}")
+                    season_errors.append(f"[需重刮削] {reason}")
                 else:
                     if not ep_data['jpg']:
-                        print(f"    └─ ❌ [缺少海报] NFO合法，但缺少 .jpg : {expected_name}")
-                        season_errors.append(f"第 {ep} 集 缺少 .jpg 海报")
+                        reason = f"第 {ep} 集 缺少 .jpg 海报"
+                        print(f"    └─ ❌ [需重刮削] {reason}")
+                        season_errors.append(f"[需重刮削] {reason}")
 
+        # 修改：以具体出错的 season_folder 为精准跳转目标
         if season_errors:
-            summary["errors"].append({"target": f"📺 [剧集] {title} - {season_folder.name}", "issues": season_errors})
+            summary["errors"].append(
+                {"target": f"📺 [剧集] {title} - {season_folder.name}", "path": season_folder, "issues": season_errors})
         else:
-            summary["perfect"].append(f"📺 [剧集] {title} - {season_folder.name}")
+            summary["perfect"].append({"text": f"📺 [剧集] {title} - {season_folder.name}", "path": season_folder})

@@ -22,7 +22,7 @@ def scan_library(root_dir, summary):
 
         if folder_name in IGNORE_FOLDER_NAMES:
             print(f"⏭️ [跳过扫描] 命中忽略规则: {folder_name}")
-            summary["ignored"].append(f"🚫 [用户跳过] {folder_name} (位于 {root_path.name})")
+            summary["ignored"].append({"text": f"🚫 [用户跳过] {folder_name}", "path": item})
             continue
 
         match = re.match(r"^(.*?)(?:\s*\(\d{4}\))?$", folder_name)
@@ -42,7 +42,7 @@ def scan_library(root_dir, summary):
         if has_season or has_tvshow_nfo:
             if not season_folders:
                 print(f"📺 [剧集异常] {folder_name} - 存在 tvshow.nfo，但未找到 Season 文件夹！")
-                summary["ignored"].append(f"📂 [结构错误剧集] {folder_name} (位于 {root_path.name})")
+                summary["ignored"].append({"text": f"📂 [结构错误剧集] {folder_name}", "path": item})
             else:
                 process_tv_show(title, season_folders, summary)
         else:

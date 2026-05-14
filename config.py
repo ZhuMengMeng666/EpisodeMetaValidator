@@ -12,3 +12,7 @@ TARGET_DIRECTORIES = [
     r"N:\NasTool\cartoon",
     r"N:\NasTool\movie",
 ]
+
+# 4. 📈 HTML 报告存储配置
+# 如果不填绝对路径，"./reports" 会自动在当前项目下创建一个 reports 文件夹
+HTML_REPORT_DIR = r"./reports"
