@@ -89,7 +89,7 @@ def generate_html_report(summary, file_path):
     </head>
     <body>
         <div class="container">
-            <h1>📊 媒体库全局质检看板</h1>
+            <h1>📊 媒体库元数据校验报告</h1>
             <div class="subtitle">生成时间：{report_time}</div>
 
             <!-- 统计卡片：加入了点击平滑滚动跳转事件 -->
