@@ -31,10 +31,10 @@
 ## 📸 界面一览
 
 **主控面板与实时日志**
-> ![Main UI](https://via.placeholder.com/800x450.png?text=Upload+Your+Main+UI+Screenshot+Here)
+> ![Main UI](https://github.com/ZhuMengMeng666/EpisodeMetaValidator/blob/master/assets/UI.png)
 
-**自动生成的 HTML 数据大屏**
-> ![HTML Report](https://via.placeholder.com/800x450.png?text=Upload+HTML+Report+Screenshot)
+**自动生成的元数据校验报告**
+> ![HTML Report](https://github.com/ZhuMengMeng666/EpisodeMetaValidator/blob/master/assets/HtmlRetport.png)
 
 ---
 
@@ -44,7 +44,7 @@
 
 ```bash
 # 1. 克隆项目
-git clone [https://github.com/YourUsername/EpisodeMetaValidator.git](https://github.com/YourUsername/EpisodeMetaValidator.git)
+git clone [https://github.com/ZhuMengMeng666/EpisodeMetaValidator.git](https://github.com/ZhuMengMeng666/EpisodeMetaValidator.git)
 cd EpisodeMetaValidator
 
 # 2. 安装 UI 依赖
