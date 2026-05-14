@@ -1,6 +1,5 @@
 import os
 import urllib.parse
-from datetime import datetime
 
 
 def format_path_link(path):
@@ -13,7 +12,7 @@ def format_path_link(path):
 
 
 def print_summary_report(summary):
-    """终端简约打印版"""
+    """终端简约打印版（已去除文件位置路径）"""
     print("\n\n" + "★" * 60)
     print(" " * 18 + "📊 跨目录最终刮削质检报告 📊")
     print("★" * 60)
@@ -22,14 +21,16 @@ def print_summary_report(summary):
     print(f"\n❌ 【需要修复】 (共 {len(summary['errors'])} 部/季):")
     if not summary['errors']: print("   （太棒了！未发现任何刮削问题）")
     for err_group in summary['errors']:
-        print(f"   ⚠️ {err_group['target']}  （{format_path_link(err_group['path'])}）")
+        # 仅输出剧集/电影名字
+        print(f"   ⚠️ {err_group['target']}")
         for issue in err_group['issues']:
             print(f"       └─ {issue}")
 
     # 2. 优先级其次：忽略/异常板块
     if summary['ignored']:
         print(f"\n👻 【忽略/异常目录】 (共 {len(summary['ignored'])} 个):")
-        for item in summary['ignored']: print(f"   - {item['text']}  （{format_path_link(item['path'])}）")
+        # 仅输出文件夹名字
+        for item in summary['ignored']: print(f"   - {item['text']}")
 
     # 3. 优先级最低：完美无瑕板块
     print(f"\n✅ 【完美无瑕】 (共 {len(summary['perfect'])} 部/季):")
@@ -39,14 +40,13 @@ def print_summary_report(summary):
     print("\n" + "★" * 60)
 
 
-def generate_html_report(summary, output_dir):
-    """生成现代化的交互式 HTML 报告"""
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+def generate_html_report(summary, file_path):
+    """生成现代化的交互式 HTML 报告 (由 GUI 直接传入绝对路径)"""
+    from datetime import datetime
+    import os
+
     report_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    file_path = os.path.join(output_dir, f"MetaReport_{timestamp}.html")
 
     # 构建 HTML 内容 (内嵌精美 CSS 样式)
     html_content = f"""
@@ -101,7 +101,7 @@ def generate_html_report(summary, output_dir):
                     忽略/异常 <span class="number">{len(summary['ignored'])}</span>
                 </div>
                 <div class="card card-perfect" onclick="document.getElementById('section-perfect').scrollIntoView({{behavior: 'smooth'}});">
-                    完美无瑕 <span class="number">{len(summary['perfect'])}</span>
+                    校验正确 <span class="number">{len(summary['perfect'])}</span>
                 </div>
             </div>
     """
@@ -142,7 +142,7 @@ def generate_html_report(summary, output_dir):
 
     # 3. 完美列表渲染 (加入了 id="section-perfect" 锚点)
     if summary['perfect']:
-        html_content += "<h2 id='section-perfect'>✅ 完美无瑕</h2>"
+        html_content += "<h2 id='section-perfect'>✅ 校验正确</h2>"
         for item in summary['perfect']:
             html_content += f"""
             <div class="list-item">
@@ -159,7 +159,6 @@ def generate_html_report(summary, output_dir):
     </html>
     """
 
+    # 现在的 file_path 是由 GUI 文件弹窗直接决定的完整绝对路径
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
-
-    print(f"\n🎉 [成功] 精美 HTML 数据看板已生成: {os.path.abspath(file_path)}")

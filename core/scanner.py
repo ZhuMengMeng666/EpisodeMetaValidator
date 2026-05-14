@@ -1,10 +1,10 @@
 import re
 from pathlib import Path
-from config import IGNORE_FOLDER_NAMES
 from core.processor import process_tv_show, process_movie
 
 
-def scan_library(root_dir, summary):
+# 🌟 新增了 stop_event 参数用于接收中断信号
+def scan_library(root_dir, summary, ignore_folders, pause_event=None, stop_event=None, progress_callback=None):
     root_path = Path(root_dir)
 
     if not root_path.exists():
@@ -18,9 +18,22 @@ def scan_library(root_dir, summary):
     for item in root_path.iterdir():
         if not item.is_dir(): continue
 
+        # ==================================
+        # 🌟 UI 交互核心：暂停拦截与终止拦截
+        # ==================================
+        if stop_event and stop_event.is_set():
+            print(f"\n🛑 [系统] 接收到提前终止指令，正在退出目录: {root_dir}")
+            return  # 直接跳出当前目录的扫描
+
+        if pause_event:
+            pause_event.wait()  # 如果触发了暂停，线程会在这里静止等待
+
+        if progress_callback:
+            progress_callback(item.name)  # 告诉 UI 当前正在扫哪个文件夹
+
         folder_name = item.name
 
-        if folder_name in IGNORE_FOLDER_NAMES:
+        if folder_name in ignore_folders:
             print(f"⏭️ [跳过扫描] 命中忽略规则: {folder_name}")
             summary["ignored"].append({"text": f"🚫 [用户跳过] {folder_name}", "path": item})
             continue
