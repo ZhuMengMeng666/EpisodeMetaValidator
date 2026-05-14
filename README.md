@@ -52,3 +52,6 @@ pip install customtkinter
 
 # 3. 启动质检仪
 python main.py
+
+## 😊 未来展望
+可能会对项目进行压缩，压缩为exe一件运行，免去琐碎的部署操作。
