@@ -1,3 +1,5 @@
+import os
+import sys
 import re
 import sys
 import threading
@@ -15,6 +17,14 @@ from ui.reporter import print_summary_report, generate_html_report
 ctk.set_appearance_mode("System")  # 跟随系统深浅色
 ctk.set_default_color_theme("blue")
 
+def resource_path(relative_path):
+    """智能获取资源的绝对路径，兼容开发环境与 PyInstaller 打包环境"""
+    try:
+        # PyInstaller 打包后，会将临时路径存放在 sys._MEIPASS 中
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 class TextRedirector:
     """拦截标准的 print 输出，并线程安全地重定向到 GUI 控制台"""
@@ -64,13 +74,14 @@ class EpisodeMetaApp(ctk.CTk):
         self.minsize(800, 600)
 
         # ==========================================
-        # 🌟 设置窗口左上角的自定义 Logo 图标
+        # 🌟 设置窗口左上角的自定义 Logo 图标 (兼容 EXE 打包)
         # ==========================================
         try:
-            # 使用标准的 iconbitmap 加载 .ico 文件
-            self.iconbitmap("logo.ico")
+            # 必须使用 resource_path 包裹，否则打包后会找不到文件崩溃！
+            self.iconbitmap(resource_path("logo.ico"))
         except Exception as e:
-            print(f"⚠️ [UI提示] 无法加载图标，请确保 logo.ico 存在于同级目录: {e}")
+            print(f"⚠️ [UI提示] 无法加载图标: {e}")
+        # ==========================================
         # ==========================================
 
         # 全局状态控制 (事件锁)

@@ -40,6 +40,10 @@
 
 ## 🚀 极速运行
 
+### 方式1
+**直接前往Releases下载压缩包解压点击exe直接使用**
+
+### 方式2
 确保你的电脑已安装 Python 3.8+，然后执行以下命令即可启动：
 
 ```bash
@@ -53,5 +57,15 @@ pip install customtkinter
 # 3. 启动质检仪
 python main.py
 
-## 😊 未来展望
-可能会对项目进行压缩，压缩为exe一件运行，免去琐碎的部署操作。
+
+```
+
+## 🐛 已知BUG解决方法
+
+### BUG01
+
+**描述：**PC与Nas在同一网络，通过NAS的SMB服务访问文件夹，媒体库视频文件为硬连接或者软连接整理处理后的，运行exe后统统报无视频导致识别为空文件夹。
+
+**解决办法：**参考下图前往NAS的控制中心修改SMB的其他设置，勾选两个选项即可。
+
+![image-20260515163517936](https://github.com/ZhuMengMeng666/EpisodeMetaValidator/blob/master/assets/Bug01.png)
