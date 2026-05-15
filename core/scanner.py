@@ -3,7 +3,23 @@ from pathlib import Path
 from core.processor import process_tv_show, process_movie
 
 
-# 🌟 新增了 stop_event 参数用于接收中断信号
+def is_ignored(item_path, ignore_folders):
+    """增强版拦截器：同时支持纯文件夹名匹配、绝对路径匹配，且完全忽略大小写和斜杠差异"""
+    # 将当前扫描到的文件夹名和绝对路径都转为小写，并统一斜杠
+    name_lower = item_path.name.lower()
+    abs_path_lower = str(item_path.resolve()).lower().replace('\\', '/')
+
+    for ig in ignore_folders:
+        # 将用户输入的忽略规则也转为小写，并统一斜杠
+        ig_lower = ig.lower().replace('\\', '/')
+
+        # 只要“文件夹名”或“完整路径”命中任意一个，立刻拦截
+        if name_lower == ig_lower or abs_path_lower == ig_lower:
+            return True
+
+    return False
+
+
 def scan_library(root_dir, summary, ignore_folders, pause_event=None, stop_event=None, progress_callback=None):
     root_path = Path(root_dir)
 
@@ -19,25 +35,30 @@ def scan_library(root_dir, summary, ignore_folders, pause_event=None, stop_event
         if not item.is_dir(): continue
 
         # ==================================
-        # 🌟 UI 交互核心：暂停拦截与终止拦截
+        # 1. UI 交互：暂停与终止拦截
         # ==================================
         if stop_event and stop_event.is_set():
             print(f"\n🛑 [系统] 接收到提前终止指令，正在退出目录: {root_dir}")
-            return  # 直接跳出当前目录的扫描
+            return
 
         if pause_event:
-            pause_event.wait()  # 如果触发了暂停，线程会在这里静止等待
+            pause_event.wait()
 
         if progress_callback:
-            progress_callback(item.name)  # 告诉 UI 当前正在扫哪个文件夹
+            progress_callback(item.name)
 
+        # ==================================
+        # 2. 核心防御：增强版名单过滤 (绝对在最前面)
+        # ==================================
+        if is_ignored(item, ignore_folders):
+            print(f"⏭️ [跳过扫描] 命中忽略规则: {item.name}")
+            summary["ignored"].append({"text": f"🚫 [用户跳过] {item.name}", "path": item})
+            continue  # 只要命中，立刻跳出当前循环，绝不执行后续的 NFO 检查！
+
+        # ==================================
+        # 3. 开始实质性的结构校验与刮削质检
+        # ==================================
         folder_name = item.name
-
-        if folder_name in ignore_folders:
-            print(f"⏭️ [跳过扫描] 命中忽略规则: {folder_name}")
-            summary["ignored"].append({"text": f"🚫 [用户跳过] {folder_name}", "path": item})
-            continue
-
         match = re.match(r"^(.*?)(?:\s*\(\d{4}\))?$", folder_name)
         title = match.group(1).strip() if match else folder_name
 
