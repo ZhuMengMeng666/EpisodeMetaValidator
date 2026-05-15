@@ -43,6 +43,13 @@
 ### 方式1
 **直接前往Releases下载压缩包解压点击exe直接使用**
 
+```bash
+#自行构建请使用Pyinstaller，构建命令如下：
+py -3.8 -m PyInstaller -n "EpisodeMetaValidator" -D -w -i "logo.ico" --add-data "logo.ico;." --collect-all customtkinter main.py
+```
+
+
+
 ### 方式2
 确保你的电脑已安装 Python 3.8+，然后执行以下命令即可启动：
 
